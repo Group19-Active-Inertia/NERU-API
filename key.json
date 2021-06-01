@@ -1,0 +1,12 @@
+{
+  "type": "service_account",
+  "project_id": "create-active-inertia",
+  "private_key_id": "b3011216957be8379a0809fc6b649c4e04c5881f",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDrQcqsQqwXXFQU\nKvQIx0HwvCzyUjZ2L7NWCgv7aNqQ3ZfBJ//b1Es/QLck+MTNCbUjfiAGcRXvKXDh\nckRlT0fnNUkvsFgwKuDySiYU87R3QTMpigfPXnsrLJ43OzM8R+QczpAWNf6+gVO0\niz/AJgWq35Jk5xAcjnNKy6F2t5+qdzZCH7Bs57jUjAg2UbLMB+0SKahNYs0/IuE1\nsYa467GbQsCSvJOFcFmcE49JDtzk/qPAKVWkDD3RpHoyQ+0KNCPH5HP6bfNzea5c\nrbUvQ+9lTvCatMmXU0jckbk2kpFYwAwV2HjKO8XR0vw/IIm3rxRiiZEvYCQG2Obp\nSWkCizwHAgMBAAECggEAHf1wmz4SlxXHiByjqFzSXKB4cFmnpLBXAcBdH6sRtcbx\n2gdB2CG7h/A1iKqH2AWFSGWDKp8O50KWp7671lhhd6l0z3YA//7vVyO5sBETL+Kp\nZYG5lidatznEX5EV6njVrRBuEM7ITzvIUmsv8MxIC6zdiixkgudr7hyAVFR7L60t\nLXO+flp9TZP993BwGeFr9UGUzC+8pS6D4ISAlPdCDQd9bMxxKC9j6A8cvueLbuVu\nthi/203a61k7rNefcTyUxAF/z2ctp5+4nbcLnwCBiuYglDGs2E+CMBdro06PgmPt\nAptRFhJDmh0m1VR5+eyRBy4yEyaRMGI9XjFsGUBrdQKBgQD9MsK12GquI7Qag5Xr\nPDIJvqk5NQ6J0/Zl0a1OU+49XKqWH9e6+s6kDrBUU0v2WZZ7NAW892cZ2uftBpXR\nUHbuNqeeXFyYqVv3VkAIfOIskw6WldP//lgj200fmpRfuzvB+WNklhLHoXkQ91SZ\n1Wv/+HP5EByR6YtrpIkkJaxP1QKBgQDt3DVgIAx5E79STGwX5Vd+dkeDtYHRbql8\nI/KJZeYemy2viMLddKjoREJvEQYia9GkCNK/modw/fK18/qVGn20Ckv2RQmN7/aE\nKTukFbw3IGYmQSyQeyPaS9kCI10swpCsBveX5FOYdeqg2eeBb+tiIXSfgvgejI0e\nGmUJz1tmawKBgF8cNDvuwZQMYVkcWLJ2eC1k61hL79wiPQpeSwWDTZjLOGEQMQ9R\nq1HBGsdySrSNTpOVJRqorJfvvPMyaBCqcyJkcW5xL29BHwS353HIx4UK8I3sVihx\nOFavyDa48EdNo9LnhUiBfyhyJXIUFjl7DAipIZdLUBAXdIHI2qMza5jJAoGAZLOQ\nHWw0G6aSn2MfeFZuXmnxCP/1QBebxaTqb+UmMdr80o4SAfP79qm/foo0kKoZDVt2\n7gucP+gjs4jhk/KtOWYKlu7PhroLIhTa3TMehjA/Tv7UwS6BFVB7RX53WhXdbhdd\nB39xLODvPr5CVvhtLRSA7W9jYHuc2xvNnwOc7JUCgYEA+O6pGfSaR8p8d3OFMnNl\nkFBV3yuK7AbU1mhxJ14UmFUuOFCqtZnan9FGNm14ryjgmBEk/1Vv7VVYACNtF4sj\n/wF/mau3c2gwJ0dqwRO21FxHcKyZRIyV2PmyvGbvH309QrKwENUUddiMTV0ze2ZW\nWhUm9fvSjGJicAw05Tke1ZU=\n-----END PRIVATE KEY-----\n",
+  "client_email": "firebase-adminsdk-dhwiv@create-active-inertia.iam.gserviceaccount.com",
+  "client_id": "118034615207864773396",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-dhwiv%40create-active-inertia.iam.gserviceaccount.com"
+}
