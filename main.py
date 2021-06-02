@@ -47,6 +47,9 @@ class UserCreate(UserBase):
 ### ----------- HELPER FUNCTIONS -----------
 ### ----------------------------------------
 
+def intersect(lista, listb):
+    return list(set(lista) & set(listb))
+
 # takes a list of queries
 # returns a dictionary with key as id and value as query data
 def queryToDict(queries):
@@ -83,7 +86,8 @@ def getUsersBySites(sites: List[str]):
 
 notAuthorizedJSON = JSONResponse(content={"response": "unauthorized"}, status_code=401)
 invalidDataJSON = JSONResponse(content={"response": "bad request"}, status_code=400)
-successfulJSON = JSONResponse(content={"response": "successful transaction"}, status_code=200)
+failedRequestJSON = JSONResponse(content={"response": "server failed to handle request"}, status_code=500)
+successfulJSON = JSONResponse(content={"response": "successful request"}, status_code=200)
     
 ### ----------------------------------------
 ### ---------- ACCOUNT MANAGEMENT ----------
@@ -105,13 +109,16 @@ def getAccount(token: str, uid: Optional[str] = None):
         if queriedUser == None:
             return JSONResponse(content={"response": "queried uid does not exist."}, status_code=400)
         
+        if requestingUserData["userType"] == UserTypes.default_user:
+            return notAuthorizedJSON
+        
         if requestingUserData["userType"] == UserTypes.admin:
             return queriedUser
         
-        elif requestingUserData["userType"] == UserTypes.site_manager:
-            for allowedSite in requestingUserData["sites"]:
-                if allowedSite in queriedUser["sites"]:
-                    return queriedUser
+        if requestingUserData["userType"] == UserTypes.site_manager:
+            if len(intersect(requestingUserData["sites"], queriedUser["sites"])) > 0:
+                return queriedUser
+            return notAuthorizedJSON
     
     #return all accounts which user has permission for
     else:
@@ -123,12 +130,34 @@ def getAccount(token: str, uid: Optional[str] = None):
             return getUsersBySites(requestingUserData["sites"])
         
     # if all above fails
-    return notAuthorizedJSON
+    return invalidDataJSON
 
 # ----- Removing account -----
 @app.delete("/accounts")
-def deleteAccount(uid: str):
-    return {}
+def deleteAccount(token:str, uid: str):
+    requestingUserUID = getUIDFromToken(token)
+    if requestingUserUID == None:
+        return JSONResponse(content={"response": "invalid token"}, status_code=400)
+    
+    requestingUserData = getUserDataByUID(requestingUserUID)
+    
+    if requestingUserData["userType"] == UserTypes.default_user:
+        return notAuthorizedJSON
+    
+    if requestingUserData["userType"] == UserTypes.admin:
+        table.document(uid).delete()
+        auth.delete_user(uid)
+        return successfulJSON
+    
+    if requestingUserData["userType"] == UserTypes.site_manager:
+        userToDelete = getUserDataByUID(uid)
+        if len(intersect(requestingUserData["sites"], userToDelete["sites"])) > 0:
+            table.document(uid).delete()
+            auth.delete_user(uid)
+            return successfulJSON
+        return notAuthorizedJSON
+    
+    return invalidDataJSON
 
 # ----- Adding account -----
 @app.post("/accounts")
