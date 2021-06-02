@@ -80,6 +80,23 @@ def getUsersBySites(sites: List[str]):
     users = table.where(u'sites', u'array_contains_any', sites).stream()
     return queryToDict(users)
 
+def createUser(user: UserCreate):
+    newUser = auth.create_user(
+        email=user.email,
+        email_verified=True,
+        password=user.password,
+        disabled=False)
+    
+    newUserRecord = {
+        "userType": user.accountType,
+        "sites": user.sites,
+        "email": user.email,   
+    }
+    
+    table.document(newUser.uid).set(newUserRecord)
+    
+    return newUser.uid
+
 ### ----------------------------------------
 ### ----------- COMMON RESPONSES -----------
 ### ----------------------------------------
@@ -161,12 +178,29 @@ def deleteAccount(token:str, uid: str):
 
 # ----- Adding account -----
 @app.post("/accounts")
-def addAccount(user: UserCreate):
-    return {}
+def addAccount(token: str, user: UserCreate):
+    requestingUserUID = getUIDFromToken(token)
+    if requestingUserUID == None:
+        return JSONResponse(content={"response": "invalid token"}, status_code=400)
+    
+    requestingUserData = getUserDataByUID(requestingUserUID)
+    
+    if requestingUserData["userType"] == UserTypes.admin:
+        uid = createUser(user)
+        
+        return {"uid": uid}
+    
+    if requestingUserData["userType"] == UserTypes.site_manager:
+        if len(intersect(user.sites, requestingUserData["sites"])) == len(user.sites) and user.accountType == UserTypes.default_user:
+            uid = createUser(user)
+            
+            return {"uid": uid}
+        
+    return notAuthorizedJSON
 
 # ----- Edit account data -----
 @app.put("/accounts")
-def editAccount(user: UserEdit):
+def editAccount(token: str, user: UserEdit):
     # # Atomically add a new region to the 'regions' array field.
     # city_ref.update({u'regions': firestore.ArrayUnion([u'greater_virginia'])})
 
