@@ -47,27 +47,35 @@ class UserCreate(UserBase):
 ### ----------- HELPER FUNCTIONS -----------
 ### ----------------------------------------
 
-def verifyToken(token: str) -> Optional[str]:
+# takes a list of queries
+# returns a dictionary with key as id and value as query data
+def queryToDict(queries):
+    dictionary = {}
+    for query in queries:
+        dictionary[query.id] = query.to_dict()
+    return dictionary
+
+# takes a token
+# returns token's user uid if valid
+# else returns None
+def getUIDFromToken(token: str) -> Optional[str]:
     try:
         decoded_token = auth.verify_id_token(token)
         return decoded_token["uid"]
     except:
         return None
 
-def getUserByUID(uid: str):
+# takes a uid
+# returns data belonging to the uid
+def getUserDataByUID(uid: str):
     user = table.document(uid).get()
-    return {uid: user.to_dict()}
+    return user.to_dict()
     
-def getUsersByRange(uid: str):
-    pass
-    
+# takes a list of sites
+# returns dict of user data belonging to any of the sites
 def getUsersBySites(sites: List[str]):
     users = table.where(u'sites', u'array_contains_any', sites).stream()
-    dictionary = {}
-    
-    for user in users:
-        dictionary[user.id] = user.to_dict()
-    return dictionary
+    return queryToDict(users)
 
 ### ----------------------------------------
 ### ----------- COMMON RESPONSES -----------
@@ -77,32 +85,45 @@ notAuthorizedJSON = JSONResponse(content={"response": "unauthorized"}, status_co
 invalidDataJSON = JSONResponse(content={"response": "bad request"}, status_code=400)
 successfulJSON = JSONResponse(content={"response": "successful transaction"}, status_code=200)
     
-    
 ### ----------------------------------------
 ### ---------- ACCOUNT MANAGEMENT ----------
 ### ----------------------------------------
 
 # ----- Get account data -----
 @app.get("/accounts")
-def getAccount(token: str, getUid: Optional[str] = None):
-    requestingUserUid = verifyToken(token)
-    if requestingUserUid == None:
-        return invalidDataJSON
+def getAccount(token: str, uid: Optional[str] = None):
+    requestingUserUID = getUIDFromToken(token)
+    if requestingUserUID == None:
+        return JSONResponse(content={"response": "invalid token"}, status_code=400)
     
-    requestingUserData = getUserByUID(requestingUserUid)
-    requestingUserPermission = requestingUserData["userType"]
+    requestingUserData = getUserDataByUID(requestingUserUID)
     
-    if requestingUserPermission == UserTypes.admin:
-        return getUserByUID(getUid)
-    elif requestingUserPermission == UserTypes.site_manager:
-        for site in requestingUserData["sites"]:
-            if getUid == None:
-                docs = db.collections('users').where()
-                # todo
+    # return user uid and data
+    if uid != None:
+        queriedUser = getUserDataByUID(uid)
+        
+        if queriedUser == None:
+            return JSONResponse(content={"response": "queried uid does not exist."}, status_code=400)
+        
+        if requestingUserData["userType"] == UserTypes.admin:
+            return queriedUser
+        
+        elif requestingUserData["userType"] == UserTypes.site_manager:
+            for allowedSite in requestingUserData["sites"]:
+                if allowedSite in queriedUser["sites"]:
+                    return queriedUser
     
-
-    
-    return {}
+    #return all accounts which user has permission for
+    else:
+        if requestingUserData["userType"] == UserTypes.admin:
+            allUsers = table.get()
+            return queryToDict(allUsers)
+        
+        elif requestingUserData["userType"] == UserTypes.site_manager:
+            return getUsersBySites(requestingUserData["sites"])
+        
+    # if all above fails
+    return notAuthorizedJSON
 
 # ----- Removing account -----
 @app.delete("/accounts")
