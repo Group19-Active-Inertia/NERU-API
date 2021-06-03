@@ -10,6 +10,9 @@ from pydantic import BaseModel
 
 app = FastAPI()
 
+@app.get("/")
+def welcomePage():
+    return {"API":"Works!"}
 
 cred = credentials.Certificate("key.json")
 firebase_admin.initialize_app(
