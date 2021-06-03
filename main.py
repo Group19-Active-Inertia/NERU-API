@@ -35,12 +35,12 @@ class UserTypes(str, Enum):
 class UserBase(BaseModel):
     sites: List[str]
     accountType: UserTypes
+    email: str
     
 class UserEdit(UserBase):
     uid: str
     
 class UserCreate(UserBase):
-    email: str
     password: str
     
 ### ----------------------------------------
@@ -96,6 +96,9 @@ def createUser(user: UserCreate):
     table.document(newUser.uid).set(newUserRecord)
     
     return newUser.uid
+
+# def editUser(user: editAccount):
+#     pass
 
 ### ----------------------------------------
 ### ----------- COMMON RESPONSES -----------
@@ -199,14 +202,27 @@ def addAccount(token: str, user: UserCreate):
     return notAuthorizedJSON
 
 # ----- Edit account data -----
-@app.put("/accounts")
-def editAccount(token: str, user: UserEdit):
-    # # Atomically add a new region to the 'regions' array field.
-    # city_ref.update({u'regions': firestore.ArrayUnion([u'greater_virginia'])})
-
-    # # // Atomically remove a region from the 'regions' array field.
-    # city_ref.update({u'regions': firestore.ArrayRemove([u'east_coast'])})
-    return {}
+# @app.put("/accounts")
+# def editAccount(token: str, user: UserEdit):
+#     requestingUserUID = getUIDFromToken(token)
+#     if requestingUserUID == None:
+#         return JSONResponse(content={"response": "invalid token"}, status_code=400)
+    
+#     requestingUserData = getUserDataByUID(requestingUserUID)
+    
+#     if requestingUserData["userType"] == UserTypes.admin:
+#         uid = createUser(user)
+        
+#         return {"uid": uid}
+    
+#     if requestingUserData["userType"] == UserTypes.site_manager:
+#         if len(intersect(user.sites, requestingUserData["sites"])) == len(user.sites) and user.accountType == UserTypes.default_user:
+#             uid = createUser(user)
+            
+#             return {"uid": uid}
+        
+#     return notAuthorizedJSON
+#     return {}
 
 ### ----------------------------------------
 ### ------------ SITE MANAGEMENT -----------
