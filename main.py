@@ -116,10 +116,18 @@ def intersect(lista, listb):
 # takes a list of queries
 # returns a dictionary with key as id and value as query data
 def queryToDict(queries):
+    if len(queries) == 1:
+        try:
+            return {queries[0].id: queries[0].to_dict()}
+        except:
+            return queries
+        
     dictionary = {}
     for query in queries:
         dictionary[query.id] = query.to_dict()
+        
     return dictionary
+
 
 # takes a token
 # returns token's user uid if valid
