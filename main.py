@@ -85,12 +85,17 @@ class ChooseSite(GetData):
 #### -------- OUTPUT CLASSES ---------
 #### ---------------------------------
 
-class UserData(BaseModel):
-    userType: str = Field(..., example=UserTypes.default_user)
+class UserGet(BaseModel):
     sites: List[str] = Field(..., example=["Birmingham", "London", "Newcastle"])
-
+    userType: UserTypes = Field(..., example=UserTypes.site_manager)
+    email: str = Field(..., example="user@email.com")
+    
 class GetUserOut(BaseModel):
-    uid1: UserData
+    __root__: Dict[str, UserGet] = Field(..., example={
+        "5dci23SoQXQIRQgXVwacYGNrrWS2": {
+            "email":"user@email.com",
+            "userType": UserTypes.site_manager,
+            "sites": ["Birmingham", "London", "Newcastle"]}})
 
 class WebLoginOut(BaseModel):
     uid: str = Field(None, example="5dci23SoQXQIRQgXVwacYGNrrWS2")
@@ -105,6 +110,9 @@ class NeruLoginOut(BaseModel):
 
 class SuccessfulOut(BaseModel):
     response: str = Field("successful request", example="successful request")
+    
+class AddUserOut(BaseModel):
+    uid: str = Field(..., example="5dci23SoQXQIRQgXVwacYGNrrWS2")
     
 ### ----------------------------------------
 ### ----------- HELPER FUNCTIONS -----------
