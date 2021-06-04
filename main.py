@@ -96,7 +96,7 @@ class WebLoginOut(BaseModel):
     uid: str = Field(None, example="5dci23SoQXQIRQgXVwacYGNrrWS2")
     idToken: str = Field(..., example="q2uWM7esugFJhGptPtIItpF8OWxS6vr2CrQ1cMH81ZoXmQ........")
     refreshToken: str = Field(..., example="AGEhc0AijkK9xYrO3Iams2II8EQJr-uwncfej4amfxT-........")
-    tokenExpiresIn: int = Field(..., example=3600)
+    tokenExpiresIn: str = Field(..., example="3600")
     userType: UserTypes = Field(..., example=UserTypes.site_manager)
     sites: List[str] = Field(..., example=["Birmingham", "London", "Newcastle"])
 
@@ -172,16 +172,18 @@ def loginUser(email: str, password: str):
         "returnSecureToken": "true"
     }
     
-    req = requests.post(url,data=data).json()
-    
-    usefulData = {
-        "uid": req["localId"],
-        "idToken": req["idToken"],
-        "refreshToken": req["refreshToken"],
-        "tokenExpiresIn": req["expiresIn"],
-    }
+    req = requests.post(url,data=data)
     
     if req.status_code == 200:
+        reqJson = req.json()
+        
+        usefulData = {
+            "uid": reqJson["localId"],
+            "idToken": reqJson["idToken"],
+            "refreshToken": reqJson["refreshToken"],
+            "tokenExpiresIn": reqJson["expiresIn"],
+        }
+        
         return usefulData
     else:
         return None
