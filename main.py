@@ -132,6 +132,7 @@ def loginUser(email: str, password: str):
 
 notAuthorizedJSON = JSONResponse(content={"response": "unauthorized"}, status_code=401)
 invalidDataJSON = JSONResponse(content={"response": "bad request"}, status_code=400)
+invalidTokenJSON = JSONResponse(content={"error": "invalid token"}, status_code=400)
 failedRequestJSON = JSONResponse(content={"response": "server failed to handle request"}, status_code=500)
 successfulJSON = JSONResponse(content={"response": "successful request"}, status_code=200)
     
@@ -183,7 +184,7 @@ def getAccount(token: str, uid: Optional[str] = None):
 def deleteAccount(token:str, uid: str):
     requestingUserUID = getUIDFromToken(token)
     if requestingUserUID == None:
-        return JSONResponse(content={"response": "invalid token"}, status_code=400)
+        return invalidTokenJSON
     
     requestingUserData = getUserDataByUID(requestingUserUID)
     
@@ -210,7 +211,7 @@ def deleteAccount(token:str, uid: str):
 def addAccount(token: str, user: UserCreate):
     requestingUserUID = getUIDFromToken(token)
     if requestingUserUID == None:
-        return JSONResponse(content={"response": "invalid token"}, status_code=400)
+        return invalidTokenJSON
     
     requestingUserData = getUserDataByUID(requestingUserUID)
     
