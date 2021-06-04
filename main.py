@@ -222,16 +222,15 @@ successfulJSON = JSONResponse(content={"response": "successful request"}, status
 
 # ----- Get account data -----
 @app.get("/accounts", tags=["User Management"], response_model=GetUserOut)
-def get_user(userRequest: GetUserData):
-    requestingUserUID = getUIDFromToken(userRequest.token)
+def get_user(token: str, uid: Optional[str] = None):
+    requestingUserUID = getUIDFromToken(token)
     if requestingUserUID == None:
         return JSONResponse(content={"response": "invalid token"}, status_code=400)
     
-    requestingUserData = getUserDataByUID(requestingUserUID)
-    
+    requestingUserData = getUserDataByUID(requestingUserUID)[requestingUserUID]
     # return user uid and data
-    if userRequest.uid != None:
-        queriedUser = getUserDataByUID(userRequest.uid)
+    if uid != None:
+        queriedUser = getUserDataByUID(uid)
         
         if queriedUser == None:
             return JSONResponse(content={"response": "queried uid does not exist."}, status_code=400)
@@ -243,7 +242,7 @@ def get_user(userRequest: GetUserData):
             return queryToDict(queriedUser)
         
         elif requestingUserData["userType"] == UserTypes.site_manager:
-            if len(intersect(requestingUserData["sites"], queriedUser[userRequest.uid]["sites"])) > 0:
+            if len(intersect(requestingUserData["sites"], queriedUser[uid]["sites"])) > 0:
                 return queryToDict(queriedUser)
             
             return unauthorizedException
