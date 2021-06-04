@@ -293,8 +293,8 @@ def add_user(addUser: UserCreate):
     return notAuthorizedJSON
 
 # ----- Edit account data -----
-# @app.put("/accounts")
-# def editAccount(token: str, user: UserEdit):
+# @app.put("/accounts", tags=["User Management"], response_model=SuccessfulOut)
+# def edit_user(token: str, user: UserEdit):
 #     requestingUserUID = getUIDFromToken(token)
 #     if requestingUserUID == None:
 #         return JSONResponse(content={"response": "invalid token"}, status_code=400)
@@ -307,7 +307,7 @@ def add_user(addUser: UserCreate):
 #         return {"uid": uid}
     
 #     if requestingUserData["userType"] == UserTypes.site_manager:
-#         if len(intersect(user.sites, requestingUserData["sites"])) == len(user.sites) and user.accountType == UserTypes.default_user:
+#         if len(intersect(user.sites, requestingUserData["sites"])) == len(user.sites) and user.userType == UserTypes.default_user:
 #             uid = createUser(user)
             
 #             return {"uid": uid}
@@ -319,20 +319,20 @@ def add_user(addUser: UserCreate):
 ### ------------ SITE MANAGEMENT -----------
 ### ----------------------------------------
 
-# ----- Add site to database -----
-@app.post("/site", tags=["Site Management"], response_model=SuccessfulOut)
-def add_site(name: str):
-    return {}
+# # ----- Add site to database -----
+# @app.post("/site", tags=["Site Management"], response_model=SuccessfulOut)
+# def add_site(name: str):
+#     return {}
 
-# ----- Delete site from database -----
-@app.delete("/site", tags=["Site Management"], response_model=SuccessfulOut)
-def delete_site(name: str):
-    return {}
+# # ----- Delete site from database -----
+# @app.delete("/site", tags=["Site Management"], response_model=SuccessfulOut)
+# def delete_site(name: str):
+#     return {}
 
-# ----- Delete site from database -----
-@app.delete("/site", tags=["Site Management"], response_model=SuccessfulOut)
-def edit_site(name: str):
-    return {}
+# # ----- Delete site from database -----
+# @app.delete("/site", tags=["Site Management"], response_model=SuccessfulOut)
+# def edit_site(name: str):
+#     return {}
 
 ### -----------------------------
 ### --------- WEB LOGIN ---------
@@ -351,25 +351,43 @@ def web_login(login: Login):
     return {**userData, **firestoreUserData}
 
 
-### ----------------------------------------
-### ---------- LOGGING IN TO NERU ----------
-### ----------------------------------------
+### --------------------------------
+### ---------- NERU LOGIN ----------
+### --------------------------------
+# ref = db.reference("items")
+# snapshot = ref.get(shallow=True)
+# print(snapshot)
 
 # ----- Log-in to NERU -----
-@app.post("/nerulogin")
-def NERULogin(email: str, password: str):
-    return {}
+# @app.post("/nerulogin", tags=["Login"], response_model=NeruLoginOut)
+# def web_login(login: Login):
+#     userData = loginUser(login.email, login.password)
+    
+#     if userData == None:
+#         return JSONResponse(content={"error": "invalid credentials"}, status_code=400)
+    
+#     firestoreUserData = getUserDataByUID(userData["uid"])
+
+#     if firestoreUserData["userType"] == UserTypes.admin:
+#         ref = db.reference("items")
+#         snapshot = ref.get(shallow=True)
+        
+#         sortedSites = sorted(snapshot.items())
 
 # ----- Choose NERU location after logging in -----
-@app.put("/choosesite")
-def chooseSite(site: str):
-    return {}
-
-### -----------------------------------------
-### --------- LOGGING IN TO WEBSITE ---------
-### -----------------------------------------
-
-# ----- Get permission -----
-@app.get("/weblogin")
-def webLogin(email: str, password: str):
-    return {}
+# @app.put("/choosesite", tags=["Login"], response_model=SuccessfulOut)
+# def choose_site(req=ChooseSite):
+#     requestingUserUID = getUIDFromToken(req.token)
+    # if requestingUserUID == None:
+    #     return invalidTokenJSON
+    
+    # requestingUserData = getUserDataByUID(requestingUserUID)
+    
+    # if requestingUserData["userType"] == UserTypes.admin:
+    #     ref = db.reference("items")
+    #     snapshot = ref.get(shallow=True)
+        
+    #     sortedSites = sorted(snapshot.items())
+        
+    
+    # return {}
