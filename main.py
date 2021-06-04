@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 import firebase_admin
 from firebase_admin import credentials, auth, db, firestore
@@ -197,6 +197,7 @@ invalidDataJSON = JSONResponse(content={"response": "bad request"}, status_code=
 invalidTokenJSON = JSONResponse(content={"error": "invalid token"}, status_code=400)
 failedRequestJSON = JSONResponse(content={"response": "server failed to handle request"}, status_code=500)
 successfulJSON = JSONResponse(content={"response": "successful request"}, status_code=200)
+invalidCredentialsException = HTTPException(400, {"error": "invalid credentials"})
     
 ### ----------------------------------------
 ### ---------- ACCOUNT MANAGEMENT ----------
@@ -284,13 +285,15 @@ def add_user(addUser: UserCreate):
     if requestingUserData["userType"] == UserTypes.admin:
         uid = createUser(addUser)
         
-        return {"uid": uid}
+        return JSONResponse(content={"uid": uid})
     
-    if requestingUserData["userType"] == UserTypes.site_manager:
-        if len(intersect(addUser.sites, requestingUserData["sites"])) == len(addUser.sites) and addUser.userType == UserTypes.default_user:
+    if (requestingUserData["userType"] == UserTypes.site_manager and
+        len(intersect(addUser.sites, requestingUserData["sites"])) == len(addUser.sites) and
+        addUser.userType == UserTypes.default_user
+        ):
             uid = createUser(addUser)
             
-            return {"uid": uid}
+            return JSONResponse(content={"uid": uid})
         
     return notAuthorizedJSON
 
@@ -344,13 +347,12 @@ def add_user(addUser: UserCreate):
 @app.post("/weblogin", tags=["Login"], response_model=WebLoginOut)
 def web_login(login: Login):
     userData = loginUser(login.email, login.password)
-    
-    if userData == None:
-        return JSONResponse(content={"error": "invalid credentials"}, status_code=400)
-    
-    firestoreUserData = getUserDataByUID(userData["uid"])
-
-    return {**userData, **firestoreUserData}
+    try:
+        firestoreUserData = getUserDataByUID(userData["uid"])
+        dataToSend = {**userData, **firestoreUserData}
+        return JSONResponse(content=dataToSend)
+    except:
+        raise invalidCredentialsException
 
 
 ### --------------------------------
