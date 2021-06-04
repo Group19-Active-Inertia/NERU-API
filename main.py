@@ -151,7 +151,7 @@ def createUser(user: UserCreate):
         disabled=False)
     
     newUserRecord = {
-        "userType": user.accountType,
+        "userType": user.userType,
         "sites": user.sites,
         "email": user.email,   
     }
