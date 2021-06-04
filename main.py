@@ -6,13 +6,28 @@ import requests
 
 from enum import Enum
 from typing import List, Optional, TypedDict, Dict
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
-app = FastAPI()
+tags_metadata = [
+    {
+        "name": "User Management",
+        "description": "These endpoints are used to manage user data",
+    },
+    {
+        "name": "Site Management",
+        "description": "These endpoints are used to manage NERU site data",
+    },
+    {
+        "name": "Login",
+        "description": "These endpoints handle log-ins",
+    },
+]
 
-@app.get("/")
+app = FastAPI(openapi_tags=tags_metadata)
+
+@app.get("/", include_in_schema=False)
 def welcomePage():
-    return {"API":"Works!"}
+    return {"API Works!":"Welcome!"}
 
 cred = credentials.Certificate("key.json")
 firebase_admin.initialize_app(
@@ -26,25 +41,70 @@ fs = firestore.client()
 
 table = fs.collection('users')
 
-#### ----------------------------------
-#### ------------ CLASSES -------------
-#### ----------------------------------
+#### ---------------------------------
+#### -------- COMMON CLASSES ---------
+#### ---------------------------------
 
 class UserTypes(str, Enum):
     admin = "admin"
     site_manager = "sitemanager"
     default_user = "default"
+
+#### --------------------------------
+#### -------- INPUT CLASSES ---------
+#### --------------------------------
+
+class GetData(BaseModel):
+    token: str = Field(..., example="q2uWM7esugFJhGptPtIItpF8OWxS6vr2CrQ1cMH81ZoXmQ........")
     
-class UserBase(BaseModel):
-    sites: List[str]
-    accountType: UserTypes
-    email: str
+class GetUserData(GetData):
+    uid: Optional[str] = Field(None, example="5dci23SoQXQIRQgXVwacYGNrrWS2")
+    
+class DelUserData(GetData):
+    uid: str = Field(..., example="5dci23SoQXQIRQgXVwacYGNrrWS2")
+    
+class UserBase(GetData):
+    sites: List[str] = Field(..., example=["Birmingham", "London", "Newcastle"])
+    userType: UserTypes = Field(..., example=UserTypes.site_manager)
+    email: str = Field(..., example="user@email.com")
     
 class UserEdit(UserBase):
-    uid: str
+    uid: str = Field(..., example="5dci23SoQXQIRQgXVwacYGNrrWS2")
     
 class UserCreate(UserBase):
-    password: str
+    password: str = Field(..., example="password123")
+    
+class Login(BaseModel):
+    email: str = Field(..., example="user@email.com")
+    password: str = Field(..., example="password123")
+    
+class ChooseSite(GetData):
+    site: str = Field(..., example="Nottingham")
+
+#### ---------------------------------
+#### -------- OUTPUT CLASSES ---------
+#### ---------------------------------
+
+class UserData(BaseModel):
+    userType: str = Field(..., example=UserTypes.default_user)
+    sites: List[str] = Field(..., example=["Birmingham", "London", "Newcastle"])
+
+class GetUserOut(BaseModel):
+    uid1: UserData
+
+class WebLoginOut(BaseModel):
+    uid: str = Field(None, example="5dci23SoQXQIRQgXVwacYGNrrWS2")
+    idToken: str = Field(..., example="q2uWM7esugFJhGptPtIItpF8OWxS6vr2CrQ1cMH81ZoXmQ........")
+    refreshToken: str = Field(..., example="AGEhc0AijkK9xYrO3Iams2II8EQJr-uwncfej4amfxT-........")
+    tokenExpiresIn: int = Field(..., example=3600)
+    userType: UserTypes = Field(..., example=UserTypes.site_manager)
+    sites: List[str] = Field(..., example=["Birmingham", "London", "Newcastle"])
+
+class NeruLoginOut(BaseModel):
+    pass
+
+class SuccessfulOut(BaseModel):
+    response: str = Field("successful request", example="successful request")
     
 ### ----------------------------------------
 ### ----------- HELPER FUNCTIONS -----------
@@ -141,30 +201,31 @@ successfulJSON = JSONResponse(content={"response": "successful request"}, status
 ### ----------------------------------------
 
 # ----- Get account data -----
-@app.get("/accounts")
-def getAccount(token: str, uid: Optional[str] = None):
-    requestingUserUID = getUIDFromToken(token)
+@app.get("/accounts", tags=["User Management"], response_model=GetUserOut)
+def get_user(userRequest: GetUserData):
+    requestingUserUID = getUIDFromToken(userRequest.token)
     if requestingUserUID == None:
         return JSONResponse(content={"response": "invalid token"}, status_code=400)
     
     requestingUserData = getUserDataByUID(requestingUserUID)
     
     # return user uid and data
-    if uid != None:
-        queriedUser = getUserDataByUID(uid)
+    if userRequest.uid != None:
+        queriedUser = getUserDataByUID(userRequest.uid)
         
         if queriedUser == None:
             return JSONResponse(content={"response": "queried uid does not exist."}, status_code=400)
         
-        if requestingUserData["userType"] == UserTypes.default_user:
+        elif requestingUserData["userType"] == UserTypes.default_user:
             return notAuthorizedJSON
         
-        if requestingUserData["userType"] == UserTypes.admin:
-            return queriedUser
+        elif requestingUserData["userType"] == UserTypes.admin:
+            return queryToDict(queriedUser)
         
-        if requestingUserData["userType"] == UserTypes.site_manager:
-            if len(intersect(requestingUserData["sites"], queriedUser["sites"])) > 0:
-                return queriedUser
+        elif requestingUserData["userType"] == UserTypes.site_manager:
+            if len(intersect(requestingUserData["sites"], queriedUser[userRequest.uid]["sites"])) > 0:
+                return queryToDict(queriedUser)
+            
             return notAuthorizedJSON
     
     #return all accounts which user has permission for
@@ -176,13 +237,16 @@ def getAccount(token: str, uid: Optional[str] = None):
         elif requestingUserData["userType"] == UserTypes.site_manager:
             return getUsersBySites(requestingUserData["sites"])
         
+        else:
+            return notAuthorizedJSON
+        
     # if all above fails
     return invalidDataJSON
 
 # ----- Removing account -----
-@app.delete("/accounts")
-def deleteAccount(token:str, uid: str):
-    requestingUserUID = getUIDFromToken(token)
+@app.delete("/accounts", tags=["User Management"], response_model=SuccessfulOut)
+def delete_user(delUser: DelUserData):
+    requestingUserUID = getUIDFromToken(delUser.token)
     if requestingUserUID == None:
         return invalidTokenJSON
     
@@ -192,37 +256,37 @@ def deleteAccount(token:str, uid: str):
         return notAuthorizedJSON
     
     if requestingUserData["userType"] == UserTypes.admin:
-        table.document(uid).delete()
-        auth.delete_user(uid)
+        table.document(delUser.uid).delete()
+        auth.delete_user(delUser.uid)
         return successfulJSON
     
     if requestingUserData["userType"] == UserTypes.site_manager:
-        userToDelete = getUserDataByUID(uid)
+        userToDelete = getUserDataByUID(delUser.uid)
         if len(intersect(requestingUserData["sites"], userToDelete["sites"])) > 0:
-            table.document(uid).delete()
-            auth.delete_user(uid)
+            table.document(delUser.uid).delete()
+            auth.delete_user(delUser.uid)
             return successfulJSON
         return notAuthorizedJSON
     
     return invalidDataJSON
 
 # ----- Adding account -----
-@app.post("/accounts")
-def addAccount(token: str, user: UserCreate):
-    requestingUserUID = getUIDFromToken(token)
+@app.post("/accounts", tags=["User Management"], response_model=SuccessfulOut)
+def add_user(addUser: UserCreate):
+    requestingUserUID = getUIDFromToken(addUser.token)
     if requestingUserUID == None:
         return invalidTokenJSON
     
     requestingUserData = getUserDataByUID(requestingUserUID)
     
     if requestingUserData["userType"] == UserTypes.admin:
-        uid = createUser(user)
+        uid = createUser(addUser)
         
         return {"uid": uid}
     
     if requestingUserData["userType"] == UserTypes.site_manager:
-        if len(intersect(user.sites, requestingUserData["sites"])) == len(user.sites) and user.accountType == UserTypes.default_user:
-            uid = createUser(user)
+        if len(intersect(addUser.sites, requestingUserData["sites"])) == len(addUser.sites) and addUser.userType == UserTypes.default_user:
+            uid = createUser(addUser)
             
             return {"uid": uid}
         
@@ -256,23 +320,28 @@ def addAccount(token: str, user: UserCreate):
 ### ----------------------------------------
 
 # ----- Add site to database -----
-@app.post("/site")
-def addSite(name: str):
+@app.post("/site", tags=["Site Management"], response_model=SuccessfulOut)
+def add_site(name: str):
     return {}
 
 # ----- Delete site from database -----
-@app.delete("/site")
-def deleteSite(name: str):
+@app.delete("/site", tags=["Site Management"], response_model=SuccessfulOut)
+def delete_site(name: str):
     return {}
 
-### ------------------------------
-### --------- LOGGING IN ---------
-### ------------------------------
+# ----- Delete site from database -----
+@app.delete("/site", tags=["Site Management"], response_model=SuccessfulOut)
+def edit_site(name: str):
+    return {}
 
-# ----- Log-in -----
-@app.post("/login")
-def webLogin(email: str, password: str):
-    userData = loginUser(email, password)
+### -----------------------------
+### --------- WEB LOGIN ---------
+### -----------------------------
+
+# ----- Log-in to website -----
+@app.post("/weblogin", tags=["Login"], response_model=WebLoginOut)
+def web_login(login: Login):
+    userData = loginUser(login.email, login.password)
     
     if userData == None:
         return JSONResponse(content={"error": "invalid credentials"}, status_code=400)
