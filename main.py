@@ -147,17 +147,20 @@ def getUIDFromToken(token: str) -> Optional[str]:
     except:
         return None
 
+
 # takes a uid
 # returns data belonging to the uid
 def getUserDataByUID(uid: str):
     user = table.document(uid).get()
-    return user.to_dict()
-    
+    return queryToDict([user])
+
+
 # takes a list of sites
 # returns dict of user data belonging to any of the sites
 def getUsersBySites(sites: List[str]):
     users = table.where(u'sites', u'array_contains_any', sites).stream()
     return queryToDict(users)
+
 
 def createUser(user: UserCreate):
     newUser = auth.create_user(
