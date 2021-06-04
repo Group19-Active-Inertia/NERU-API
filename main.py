@@ -292,14 +292,14 @@ def delete_user(delUser: DelUserData):
     
     return invalidDataException
 
-# ----- Adding account -----
-@app.post("/accounts", tags=["User Management"], response_model=SuccessfulOut)
+# ----- Adding user -----
+@app.post("/accounts", tags=["User Management"], response_model=AddUserOut)
 def add_user(addUser: UserCreate):
     requestingUserUID = getUIDFromToken(addUser.token)
     if requestingUserUID == None:
         return invalidTokenException
     
-    requestingUserData = getUserDataByUID(requestingUserUID)
+    requestingUserData = getUserDataByUID(requestingUserUID)[requestingUserUID]
     
     if requestingUserData["userType"] == UserTypes.admin:
         uid = createUser(addUser)
