@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 import firebase_admin
 from firebase_admin import credentials, auth, db, firestore
-# import google-cloud-firestore
+import requests
 
 from enum import Enum
 from typing import List, Optional, TypedDict, Dict
@@ -102,6 +102,29 @@ def createUser(user: UserCreate):
 
 # def editUser(user: editAccount):
 #     pass
+
+def loginUser(email: str, password: str):
+    apiKey = "AIzaSyBkpEDGlj06SVpYzIbNr2KCIGfYhXBGysE"
+    url = f"https://www.googleapis.com/identitytoolkit/v3/relyingparty/verifyPassword?key={apiKey}"
+    data = {
+        "email": email,
+        "password": password,
+        "returnSecureToken": "true"
+    }
+    
+    req = requests.post(url,data=data).json()
+    
+    usefulData = {
+        "uid": req["localId"],
+        "idToken": req["idToken"],
+        "refreshToken": req["refreshToken"],
+        "tokenExpiresIn": req["expiresIn"],
+    }
+    
+    if req.status_code == 200:
+        return usefulData
+    else:
+        return None
 
 ### ----------------------------------------
 ### ----------- COMMON RESPONSES -----------
@@ -240,6 +263,23 @@ def addSite(name: str):
 @app.delete("/site")
 def deleteSite(name: str):
     return {}
+
+### ------------------------------
+### --------- LOGGING IN ---------
+### ------------------------------
+
+# ----- Log-in -----
+@app.post("/login")
+def webLogin(email: str, password: str):
+    userData = loginUser(email, password)
+    
+    if userData == None:
+        return JSONResponse(content={"error": "invalid credentials"}, status_code=400)
+    
+    firestoreUserData = getUserDataByUID(userData["uid"])
+
+    return {**userData, **firestoreUserData}
+
 
 ### ----------------------------------------
 ### ---------- LOGGING IN TO NERU ----------
