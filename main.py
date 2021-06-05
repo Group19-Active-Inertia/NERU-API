@@ -80,6 +80,10 @@ class UserCreate(UserBase):
 class AddSite(GetData):
     name: str = Field(..., example="Birmingham")
     port: Optional[int] = Field(None, example=5863)
+
+class DeleteSite(GetData):
+    name: str = Field(..., example="Birmingham")
+
 class Login(BaseModel):
     email: str = Field(..., example="user@email.com")
     password: str = Field(..., example="password123")
@@ -443,9 +447,26 @@ def add_site(site: AddSite):
     
 
 # # ----- Delete site from database -----
-# @app.delete("/site", tags=["Site Management"], response_model=SuccessfulOut)
-# def delete_site(name: str):
-#     return {}
+@app.delete("/site", tags=["Site Management"], response_model=SuccessfulOut)
+def delete_site(site: DeleteSite):
+    requestingUserUID = getUIDFromToken(site.token)
+    if requestingUserUID == None:
+        raise invalidTokenException
+    
+    requestingUserData = getUserDataByUID(requestingUserUID)[requestingUserUID]
+    
+    if requestingUserData["userType"] == UserTypes.admin:
+        ref = db.reference("nerus").child(site.name)
+        
+        if ref.get() != None:
+            pass # delete all values in firestore and delete in firebase rtdb
+            
+        else:
+            raise HTTPException(400, {"error": "site does not exist"})
+        
+        return successfulJSON
+    
+    raise unauthorizedException
 
 # # ----- Delete site from database -----
 # @app.delete("/site", tags=["Site Management"], response_model=SuccessfulOut)
