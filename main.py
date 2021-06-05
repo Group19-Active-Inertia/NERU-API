@@ -75,8 +75,9 @@ class UserEdit(GetData):
     userType: Optional[UserTypes] = Field(None, example=UserTypes.site_manager)
     
 class UserCreate(UserBase):
-    password: str = Field(..., example="password123")
-    
+class AddSite(GetData):
+    name: str = Field(..., example="Birmingham")
+    port: Optional[int] = Field(None, example=5863)
 class Login(BaseModel):
     email: str = Field(..., example="user@email.com")
     password: str = Field(..., example="password123")
@@ -408,9 +409,30 @@ def edit_user(user: UserEdit):
 ### ----------------------------------------
 
 # # ----- Add site to database -----
-# @app.post("/site", tags=["Site Management"], response_model=SuccessfulOut)
-# def add_site(name: str):
-#     return {}
+@app.post("/site", tags=["Site Management"], response_model=SuccessfulOut)
+def add_site(site: AddSite):
+    requestingUserUID = getUIDFromToken(site.token)
+    if requestingUserUID == None:
+        raise invalidTokenException
+    
+    requestingUserData = getUserDataByUID(requestingUserUID)[requestingUserUID]
+    
+    if requestingUserData["userType"] == UserTypes.admin:
+        ref = db.reference("nerus").child(site.name)
+        
+        if ref.get() == None:
+            ref.set({
+                "Name": site.name,
+                "Port": site.port
+                })
+            
+        else:
+            raise HTTPException(400, {"error": "site already exists"})
+        
+        return successfulJSON
+    
+    raise unauthorizedException
+    
 
 # # ----- Delete site from database -----
 # @app.delete("/site", tags=["Site Management"], response_model=SuccessfulOut)
