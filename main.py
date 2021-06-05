@@ -90,6 +90,11 @@ class Login(BaseModel):
     
 class ChooseSite(GetData):
     site: str = Field(..., example="Nottingham")
+    
+class EditSite(GetData):
+    site: str = Field(..., example="Nottingham")
+    newSite: Optional[str] = Field(None, example="Nottingham North")
+    newPort: Optional[int] = Field(None, example=8080)
 
 #### ---------------------------------
 #### -------- OUTPUT CLASSES ---------
@@ -468,10 +473,60 @@ def delete_site(site: DeleteSite):
     
     raise unauthorizedException
 
-# # ----- Delete site from database -----
-# @app.delete("/site", tags=["Site Management"], response_model=SuccessfulOut)
-# def edit_site(name: str):
-#     return {}
+# # ----- Edit site data -----
+@app.put("/site", tags=["Site Management"], response_model=SuccessfulOut)
+def edit_site(site: EditSite):
+    requestingUserUID = getUIDFromToken(site.token)
+    if requestingUserUID == None:
+        raise invalidTokenException
+    
+    requestingUserData = getUserDataByUID(requestingUserUID)[requestingUserUID]
+    
+    if requestingUserData["userType"] == UserTypes.admin:
+        oldSiteRef = db.reference("nerus").child(site.site)
+        newSiteRef = db.reference("nerus").child(site.newSite)
+        
+        oldSiteData = oldSiteRef.get()
+        
+        if oldSiteData == None:
+            raise HTTPException(400, {"error": "site does not exist"})
+        
+        elif (site.newSite != None and 
+            oldSiteData != None and 
+            newSiteRef.get() == None
+            ):
+            
+            # update firestore database
+            users = getUsersBySites([site.site])
+            
+            batch = fs.batch()
+            
+            for uid, data in users.items():
+                userRef = table.document(uid)
+                
+                newSites = [site.newSite if name == site.site else name for name in data["sites"]]
+                
+                batch.update(userRef, {"sites": newSites})
+                
+            batch.commit()
+            
+            # update realtime database
+            newSiteData = oldSiteData.copy()
+            if site.newPort != None:
+                newSiteData["Port"] = site.newPort
+            newSiteData["Name"] = site.newSite
+            newSiteRef.set(newSiteData)
+            oldSiteRef.delete()
+            
+            return successfulJSON
+            
+        elif site.newSite == None and site.newPort != None:
+            oldSiteRef.update({"Port": site.newPort})
+            return successfulJSON
+        
+        return successfulJSON
+    
+    raise unauthorizedException
 
 ### -----------------------------
 ### --------- WEB LOGIN ---------
