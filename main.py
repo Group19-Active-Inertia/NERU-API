@@ -182,6 +182,17 @@ def createUser(user: UserCreate):
     
     return newUser.uid
 
+
+def addSitesToUser(uid: str, sites: List[str]):
+    ref = table.document(uid)
+    ref.update({u'sites': firestore.ArrayUnion(sites)})
+    return
+
+def removeSitesFromUser(uid: str, sites: List[str]):
+    ref = table.document(uid)
+    ref.update({u'sites': firestore.ArrayRemove(sites)})
+    return
+
 def editUser(user: UserEdit):
     # TODO: check if email already exists
     batch = fs.batch()
@@ -288,32 +299,37 @@ def get_user(token: str, uid: Optional[str] = None):
     # if all above fails
     return invalidDataException
 
-# ----- Removing account -----
+# ----- Removing user -----
 @app.delete("/accounts", tags=["User Management"], response_model=SuccessfulOut)
 def delete_user(delUser: DelUserData):
+    
+    def deleteUserFromFirebase(uid):
+        table.document(uid).delete()
+        auth.delete_user(uid)
+        
     requestingUserUID = getUIDFromToken(delUser.token)
     if requestingUserUID == None:
-        return invalidTokenException
+        raise invalidTokenException
     
-    requestingUserData = getUserDataByUID(requestingUserUID)
-    
-    if requestingUserData["userType"] == UserTypes.default_user:
-        return unauthorizedException
+    requestingUserData = getUserDataByUID(requestingUserUID)[requestingUserUID]
     
     if requestingUserData["userType"] == UserTypes.admin:
-        table.document(delUser.uid).delete()
-        auth.delete_user(delUser.uid)
+        deleteUserFromFirebase(delUser.uid)
         return successfulJSON
     
     if requestingUserData["userType"] == UserTypes.site_manager:
         userToDelete = getUserDataByUID(delUser.uid)
-        if len(intersect(requestingUserData["sites"], userToDelete["sites"])) > 0:
-            table.document(delUser.uid).delete()
-            auth.delete_user(delUser.uid)
+        commonSites = intersect(requestingUserData["sites"], userToDelete["sites"])
+        
+        if len(commonSites) == len(userToDelete["sites"]):
+            deleteUserFromFirebase(delUser.uid)
             return successfulJSON
-        return unauthorizedException
-    
-    return invalidDataException
+        
+        else:
+            removeSitesFromUser(delUser.uid, requestingUserData["sites"])
+            return successfulJSON
+        
+    raise unauthorizedException
 
 # ----- Adding user -----
 @app.post("/accounts", tags=["User Management"], response_model=AddUserOut)
