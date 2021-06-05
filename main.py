@@ -64,9 +64,9 @@ class DelUserData(GetData):
     uid: str = Field(..., example="5dci23SoQXQIRQgXVwacYGNrrWS2")
     
 class UserBase(GetData):
-    sites: List[str] = Field(..., example=["Birmingham", "London", "Newcastle"])
-    userType: UserTypes = Field(..., example=UserTypes.site_manager)
-    email: str = Field(..., example="user@email.com")
+    sites: List[str] = Field([], example=["Birmingham", "London", "Newcastle"])
+    userType: UserTypes = Field(UserTypes.default_user, example=UserTypes.site_manager)
+    email: Optional[str] = Field(None, example="user@email.com")
     
 class UserEdit(UserBase):
     uid: str = Field(..., example="5dci23SoQXQIRQgXVwacYGNrrWS2")
@@ -295,14 +295,28 @@ def delete_user(delUser: DelUserData):
 # ----- Adding user -----
 @app.post("/accounts", tags=["User Management"], response_model=AddUserOut)
 def add_user(addUser: UserCreate):
+    
+    def addSitesOnly():
+        user = auth.get_user_by_email(addUser.email)
+        addSitesToUser(addUser.uid, addUser.sites)
+        return user.uid        
+        
     requestingUserUID = getUIDFromToken(addUser.token)
     if requestingUserUID == None:
-        return invalidTokenException
+        raise invalidTokenException
     
     requestingUserData = getUserDataByUID(requestingUserUID)[requestingUserUID]
     
     if requestingUserData["userType"] == UserTypes.admin:
-        uid = createUser(addUser)
+        
+        # if user already exists
+        try:
+            uid = addSitesOnly()
+         
+        except:   
+            uid = createUser(addUser)
+            if uid == None:
+                raise invalidDataException
         
         return JSONResponse(content={"uid": uid})
     
@@ -310,11 +324,19 @@ def add_user(addUser: UserCreate):
         len(intersect(addUser.sites, requestingUserData["sites"])) == len(addUser.sites) and
         addUser.userType == UserTypes.default_user
         ):
-            uid = createUser(addUser)
+            # if user already exists
+            try:
+                uid = addSitesOnly()
+                
+            # if user doesnt exist
+            except:
+                uid = createUser(addUser)
+                if uid == None:
+                    raise invalidDataException
             
             return JSONResponse(content={"uid": uid})
         
-    return unauthorizedException
+    raise unauthorizedException
 
 # ----- Edit account data -----
 # @app.put("/accounts", tags=["User Management"], response_model=SuccessfulOut)
