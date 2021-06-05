@@ -68,8 +68,11 @@ class UserBase(GetData):
     userType: UserTypes = Field(UserTypes.default_user, example=UserTypes.site_manager)
     email: Optional[str] = Field(None, example="user@email.com")
     
-class UserEdit(UserBase):
+class UserEdit(GetData):
     uid: str = Field(..., example="5dci23SoQXQIRQgXVwacYGNrrWS2")
+    email: Optional[str] = Field(None, example="user@email.com")
+    password: Optional[str] = Field(None, example="password123")
+    userType: Optional[UserTypes] = Field(None, example=UserTypes.site_manager)
     
 class UserCreate(UserBase):
     password: str = Field(..., example="password123")
@@ -179,8 +182,28 @@ def createUser(user: UserCreate):
     
     return newUser.uid
 
-# def editUser(user: editAccount):
-#     pass
+def editUser(user: UserEdit):
+    # TODO: check if email already exists
+    batch = fs.batch()
+    ref = table.document(user.uid)
+    
+    if user.email != None and user.password != None:
+        auth.update_user(user.uid, email=user.email, password=user.password)
+        batch.update(ref, {"email":user.email})
+        
+    elif user.email != None:
+        auth.update_user(user.uid, email=user.email)
+        batch.update(ref, {"email":user.email})
+        
+    elif user.password != None:
+        auth.update_user(user.uid, password=user.password)
+        
+    if user.userType != None:
+        batch.update(ref, {'userType': user.userType})
+        
+    batch.commit()
+    return
+        
 
 def loginUser(email: str, password: str):
     apiKey = "AIzaSyBkpEDGlj06SVpYzIbNr2KCIGfYhXBGysE"
@@ -339,27 +362,29 @@ def add_user(addUser: UserCreate):
     raise unauthorizedException
 
 # ----- Edit account data -----
-# @app.put("/accounts", tags=["User Management"], response_model=SuccessfulOut)
-# def edit_user(token: str, user: UserEdit):
-#     requestingUserUID = getUIDFromToken(token)
-#     if requestingUserUID == None:
-#         return JSONResponse(content={"response": "invalid token"}, status_code=400)
+@app.put("/accounts", tags=["User Management"], response_model=SuccessfulOut)
+def edit_user(user: UserEdit):
+    requestingUserUID = getUIDFromToken(user.token)
+    if requestingUserUID == None:
+        raise invalidTokenException
     
-#     requestingUserData = getUserDataByUID(requestingUserUID)
+    requestingUserData = getUserDataByUID(requestingUserUID)[requestingUserUID]
     
-#     if requestingUserData["userType"] == UserTypes.admin:
-#         uid = createUser(user)
+    if not table.document(user.uid).get().exists:
+        raise HTTPException(400, {"error": "user uid does not exist"})
+    
+    if requestingUserData["userType"] == UserTypes.admin:
+        editUser(user)
+        return successfulJSON
+    
+    elif (requestingUserData["userType"] == UserTypes.site_manager    and
+        len(intersect(user.sites, requestingUserData["sites"])) > 0 and 
+        user.userType == None
+        ):
+            editUser(user)
+            return successfulJSON
         
-#         return {"uid": uid}
-    
-#     if requestingUserData["userType"] == UserTypes.site_manager:
-#         if len(intersect(user.sites, requestingUserData["sites"])) == len(user.sites) and user.userType == UserTypes.default_user:
-#             uid = createUser(user)
-            
-#             return {"uid": uid}
-        
-#     return notAuthorizedJSON
-#     return {}
+    raise unauthorizedException
 
 ### ----------------------------------------
 ### ------------ SITE MANAGEMENT -----------
