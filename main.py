@@ -262,9 +262,10 @@ successfulJSON = JSONResponse(content={"response": "successful request"}, status
 def get_user(token: str, uid: Optional[str] = None):
     requestingUserUID = getUIDFromToken(token)
     if requestingUserUID == None:
-        return JSONResponse(content={"response": "invalid token"}, status_code=400)
+        raise invalidTokenException
     
     requestingUserData = getUserDataByUID(requestingUserUID)[requestingUserUID]
+
     # return user uid and data
     if uid != None:
         queriedUser = getUserDataByUID(uid)
@@ -273,7 +274,7 @@ def get_user(token: str, uid: Optional[str] = None):
             return JSONResponse(content={"response": "queried uid does not exist."}, status_code=400)
         
         elif requestingUserData["userType"] == UserTypes.default_user:
-            return unauthorizedException
+            raise unauthorizedException
         
         elif requestingUserData["userType"] == UserTypes.admin:
             return queryToDict(queriedUser)
@@ -282,7 +283,7 @@ def get_user(token: str, uid: Optional[str] = None):
             if len(intersect(requestingUserData["sites"], queriedUser[uid]["sites"])) > 0:
                 return queryToDict(queriedUser)
             
-            return unauthorizedException
+            raise unauthorizedException
     
     #return all accounts which user has permission for
     else:
@@ -294,10 +295,10 @@ def get_user(token: str, uid: Optional[str] = None):
             return getUsersBySites(requestingUserData["sites"])
         
         else:
-            return unauthorizedException
+            raise unauthorizedException
         
     # if all above fails
-    return invalidDataException
+    raise invalidDataException
 
 # ----- Removing user -----
 @app.delete("/accounts", tags=["User Management"], response_model=SuccessfulOut)
