@@ -75,6 +75,8 @@ class UserEdit(GetData):
     userType: Optional[UserTypes] = Field(None, example=UserTypes.site_manager)
     
 class UserCreate(UserBase):
+    password: Optional[str] = Field(None, example="password123")
+    
 class AddSite(GetData):
     name: str = Field(..., example="Birmingham")
     port: Optional[int] = Field(None, example=5863)
@@ -125,6 +127,7 @@ class AddUserOut(BaseModel):
 def intersect(lista, listb):
     return list(set(lista) & set(listb))
 
+
 # takes a list of queries
 # returns a dictionary with key as id and value as query data
 def queryToDict(queries):
@@ -167,6 +170,11 @@ def getUsersBySites(sites: List[str]):
 
 
 def createUser(user: UserCreate):
+    # TODO: check if user is duplicate
+    if (user.email == None or
+        user.password == None):
+        return None
+        
     newUser = auth.create_user(
         email=user.email,
         email_verified=True,
