@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 import firebase_admin
 from firebase_admin import credentials, auth, db, firestore
 import requests
@@ -7,6 +8,9 @@ import requests
 from enum import Enum
 from typing import List, Optional, TypedDict, Dict
 from pydantic import BaseModel, Field
+
+## FOR DEBUGGING
+import uvicorn
 
 tags_metadata = [
     {
@@ -25,6 +29,16 @@ tags_metadata = [
 
 app = FastAPI(openapi_tags=tags_metadata)
 
+origins = ["*"]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 @app.get("/", include_in_schema=False)
 def welcomePage():
     return {"API Works!":"Welcome!"}
@@ -38,7 +52,6 @@ firebase_admin.initialize_app(
     )
 
 fs = firestore.client()
-
 table = fs.collection('users')
 
 #### ---------------------------------
@@ -572,7 +585,7 @@ def web_login(login: Login):
 # def choose_site(req=ChooseSite):
 #     requestingUserUID = getUIDFromToken(req.token)
     # if requestingUserUID == None:
-    #     return invalidTokenJSON
+    #     return invalidTokenException
     
     # requestingUserData = getUserDataByUID(requestingUserUID)
     
@@ -584,3 +597,7 @@ def web_login(login: Login):
         
     
     # return {}
+        
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="127.0.0.1", port=8000)
