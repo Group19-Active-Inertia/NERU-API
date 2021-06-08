@@ -138,26 +138,40 @@ def removeSitesFromUser(uid: str, sites: List[str]):
     return
 
 def editUser(user: UserEdit):
-    # TODO: check if email already exists
     batch = fs.batch()
     ref = table.document(user.uid)
     
+    try:
+        # returns error if email is not found
+        auth.get_user_by_email(user.email)
+        return False
+    except:
+        pass
+    
+    firestoreUpdates = {}
+    
     if user.email != None and user.password != None:
         auth.update_user(user.uid, email=user.email, password=user.password)
-        batch.update(ref, {"email":user.email})
+        firestoreUpdates["email":user.email]
         
     elif user.email != None:
         auth.update_user(user.uid, email=user.email)
-        batch.update(ref, {"email":user.email})
+        firestoreUpdates["email":user.email]
         
     elif user.password != None:
         auth.update_user(user.uid, password=user.password)
         
     if user.userType != None:
-        batch.update(ref, {'userType': user.userType})
+        firestoreUpdates["userType":user.userType]
+
+    batch.update(ref, firestoreUpdates)
         
     batch.commit()
-    return
+    
+    addSitesToUser(user.uid, user.addSites)
+    removeSitesFromUser(user.uid, user.delSites)
+    
+    return True
         
 
 def loginUser(email: str, password: str):
@@ -335,8 +349,9 @@ def edit_user(user: UserEdit):
         raise HTTPException(400, {"error": "user uid does not exist"})
     
     if requestingUserData["userType"] == UserTypes.admin:
-        editUser(user)
-        return successfulJSON
+        if editUser(user):
+            return successfulJSON
+        return HTTPException(400, {"error": "email already exists"})
     
     elif (requestingUserData["userType"] == UserTypes.site_manager    and
         len(intersect(user.sites, requestingUserData["sites"])) > 0 and 
