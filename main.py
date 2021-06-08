@@ -84,7 +84,7 @@ class UserEdit(GetData):
     addSites: Optional[List[str]] = Field([], example=["Birmingham, London"])
     delSites: Optional[List[str]] = Field([], example=["Newcastle", "Battersea"])
     
-class UserCreate(UserBase):
+class UserCreate(GetData):
     email: str = Field(..., example="user@email.com")
     password: Optional[str] = Field(None, example="password123")
     sites: List[str] = Field([], example=["Birmingham", "London", "Newcastle"])
