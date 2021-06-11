@@ -322,14 +322,14 @@ def get_user(token: str, uid: Optional[str] = None):
         queriedUser = getUserDataByUID(uid)
         
         if queriedUser == None:
-            return JSONResponse(content={"response": "queried uid does not exist."}, status_code=400)
+            raise HTTPException(400, {"error": "queried uid does not exist."})
         
         elif requestingUserData["userType"] == UserTypes.admin:
-            return queryToDict(queriedUser)
+            return JSONResponse(queryToDict(queriedUser))
         
         elif requestingUserData["userType"] == UserTypes.site_manager:
             if len(intersect(requestingUserData["sites"], queriedUser[uid]["sites"])) > 0:
-                return queryToDict(queriedUser)
+                return JSONResponse(queryToDict(queriedUser))
             
             raise unauthorizedException
     
@@ -337,13 +337,10 @@ def get_user(token: str, uid: Optional[str] = None):
     else:
         if requestingUserData["userType"] == UserTypes.admin:
             allUsers = table.get()
-            return queryToDict(allUsers)
+            return JSONResponse(queryToDict(allUsers))
         
         elif requestingUserData["userType"] == UserTypes.site_manager:
-            return getUsersBySites(requestingUserData["sites"])
-        
-        else:
-            raise unauthorizedException
+            return JSONResponse(content=getUsersBySites(requestingUserData["sites"]))
         
     # if all above fails
     raise invalidDataException
