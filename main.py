@@ -314,15 +314,15 @@ def get_user(token: str, uid: Optional[str] = None):
     
     requestingUserData = getUserDataByUID(requestingUserUID)[requestingUserUID]
 
+    if requestingUserData["userType"] == UserTypes.default_user:
+        raise unauthorizedException
+    
     # return user uid and data
     if uid != None:
         queriedUser = getUserDataByUID(uid)
         
         if queriedUser == None:
             return JSONResponse(content={"response": "queried uid does not exist."}, status_code=400)
-        
-        elif requestingUserData["userType"] == UserTypes.default_user:
-            raise unauthorizedException
         
         elif requestingUserData["userType"] == UserTypes.admin:
             return queryToDict(queriedUser)
