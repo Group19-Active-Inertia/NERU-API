@@ -626,25 +626,34 @@ def web_login(login: Login):
 ### --------------------------------
 ### ---------- NERU LOGIN ----------
 ### --------------------------------
-# ref = db.reference("items")
-# snapshot = ref.get(shallow=True)
-# print(snapshot)
 
 # ----- Log-in to NERU -----
-# @app.post("/nerulogin", tags=["Login"], response_model=NeruLoginOut)
-# def web_login(login: Login):
-#     userData = loginUser(login.email, login.password)
+@app.post("/nerulogin", tags=["Login"], response_model=LoginOut)
+def neru_login(login: Login):
+    userData = loginUser(login.email, login.password)
     
-#     if userData == None:
-#         return JSONResponse(content={"error": "invalid credentials"}, status_code=400)
+    if userData == None:
+        raise invalidCredentialsException
     
-#     firestoreUserData = getUserDataByUID(userData["uid"])
+    firestoreUserData = getUserDataByUID(userData["uid"])[userData]
 
-#     if firestoreUserData["userType"] == UserTypes.admin:
-#         ref = db.reference("items")
-#         snapshot = ref.get(shallow=True)
+    if firestoreUserData["userType"] == UserTypes.admin:
+        ref = db.reference("nerus")
+        snapshot = ref.get(shallow=True)
         
-#         sortedSites = sorted(snapshot.items())
+        sortedSites = sorted(snapshot.items())
+        
+    else:
+        sortedSites = sorted(firestoreUserData["sites"])
+        
+    responseContent = {
+        "idToken": userData["idToken"],
+        "refreshToken": userData["refreshToken"],
+        "tokenExpiresIn": userData["tokenExpiresIn"],
+        "sites": sortedSites
+    }
+    
+    return JSONResponse(content=responseContent)
 
 # ----- Choose NERU location after logging in -----
 @app.post("/choosesite", tags=["Login"], response_model=SuccessfulOut)
