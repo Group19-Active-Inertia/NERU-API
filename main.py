@@ -11,9 +11,6 @@ from enum import Enum
 from typing import List, Optional, TypedDict, Dict
 from pydantic import BaseModel, Field
 
-## FOR DEBUGGING
-# import uvicorn
-
 tags_metadata = [
     {
         "name": "User Management",
@@ -729,7 +726,4 @@ def choose_site(site=ChooseSite):
         raise HTTPException(400, {"error":"CoAP server did not return a response"})
             
     raise invalidDataException
-        
-
-# if __name__ == "__main__":
-#     uvicorn.run(app, host="127.0.0.1", port=8000)
+    
