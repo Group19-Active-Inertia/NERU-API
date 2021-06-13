@@ -670,7 +670,7 @@ def neru_login(login: Login):
 
 # ----- Choose NERU location after logging in -----
 @app.post("/choosesite", tags=["Login"], response_model=SuccessfulOut)
-def choose_site(site=ChooseSite):
+def choose_site(site: ChooseSite):
     
     siteData = getSiteData(site.site)
     
