@@ -4,6 +4,8 @@ from fastapi.middleware.cors import CORSMiddleware
 import firebase_admin
 from firebase_admin import credentials, auth, db, firestore
 import requests
+import boto3
+from coapthon.client.helperclient import HelperClient
 
 from enum import Enum
 from typing import List, Optional, TypedDict, Dict
@@ -210,6 +212,10 @@ def getUsersBySites(sites: List[str]):
     users = table.where(u'sites', u'array_contains_any', sites).stream()
     return queryToDict(users)
 
+
+def getSiteData(site: str):
+    return db.reference("nerus").child(site).get()
+
 ### -----------------------------------------
 ### ----------- HANDLER FUNCTIONS -----------
 ### -----------------------------------------
@@ -305,6 +311,33 @@ def loginUser(email: str, password: str):
         return usefulData
     else:
         return None
+
+def createNewThingAndKeys(name: str):
+    try:
+        principals = client.list_thing_principals(thingName=name)
+        print(principals)
+        for principal in principals["principals"]:
+            client.detach_thing_principal(
+                thingName=name,
+                principal=principal
+            )
+            
+    except:
+        client.create_thing(thingName=name)
+    
+    createKeysResponse = client.create_keys_and_certificate(setAsActive=True)
+    
+    client.attach_thing_principal(
+        thingName=name,
+        principal=createKeysResponse["certificateArn"]
+    )
+    
+    return {
+        "certificatePem": createKeysResponse["certificatePem"],
+        "publicKey": createKeysResponse["keyPair"]["PublicKey"],
+        "privateKey": createKeysResponse["keyPair"]["PrivateKey"],
+    }
+
 
 ### ----------------------------------------
 ### ----------- COMMON RESPONSES -----------
@@ -614,22 +647,63 @@ def web_login(login: Login):
 #         sortedSites = sorted(snapshot.items())
 
 # ----- Choose NERU location after logging in -----
-# @app.put("/choosesite", tags=["Login"], response_model=SuccessfulOut)
-# def choose_site(req=ChooseSite):
-#     requestingUserUID = getUIDFromToken(req.token)
-    # if requestingUserUID == None:
-    #     return invalidTokenException
+@app.post("/choosesite", tags=["Login"], response_model=SuccessfulOut)
+def choose_site(site=ChooseSite):
     
-    # requestingUserData = getUserDataByUID(requestingUserUID)
+    siteData = getSiteData(site.site)
     
-    # if requestingUserData["userType"] == UserTypes.admin:
-    #     ref = db.reference("items")
-    #     snapshot = ref.get(shallow=True)
+    if siteData == None:
+        raise invalidDataException
+    
+    def testCoAP():
+        try:
+            client = HelperClient(server=(site.ip, siteData["Port"]))
+            response = client.get('test', timeout=1)
+            client.stop()
+            
+            if response:
+                return True
+            
+        except:
+            pass
         
-    #     sortedSites = sorted(snapshot.items())
-        
+        return False
     
-    # return {}
+    def updateNERUOnFirebase():
+        ref = db.reference(f"nerus/{site.site}")
+        newData = {
+            "CurrentIP": site.ip,
+            "Latitude": site.lat,
+            "Longitude": site.lon,
+            "Online": True,
+        }
+        ref.update(newData)
+    
+    def approveConnection():
+        updateNERUOnFirebase()
+        data = createNewThingAndKeys(site.site)
+        return JSONResponse(content=data)
+
+    requestingUserUID = getUIDFromToken(site.token)
+    if requestingUserUID == None:
+        raise invalidTokenException
+    
+    requestingUserData = getUserDataByUID(requestingUserUID)
+    
+    if testCoAP():
+        if requestingUserData["userType"] == UserTypes.admin:
+            return approveConnection()
+            
+        else:
+            userData = getUserDataByUID(requestingUserUID)
+            
+            if site.site in userData["sites"]:
+                return approveConnection()
+    
+    else:
+        raise HTTPException(400, {"error":"CoAP server did not return a response"})
+            
+    raise invalidDataException
         
 
 # if __name__ == "__main__":
