@@ -43,7 +43,10 @@ app.add_middleware(
 def welcomePage():
     return {"API Works!":"Welcome!"}
 
+
+# ----- Firebase admin client -----
 cred = credentials.Certificate("key.json")
+
 firebase_admin.initialize_app(
     cred, 
     {'databaseURL': "https://create-active-inertia-default-rtdb.europe-west1.firebasedatabase.app",
@@ -54,6 +57,18 @@ firebase_admin.initialize_app(
 fs = firestore.client()
 table = fs.collection('users')
 
+
+# ----- AWS admin client -----
+aws_access_key_id = "AKIARD43YVXRS2TCFVIQ"
+aws_secret_access_key = "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"
+
+client = boto3.client(
+    'iot', 
+    region_name="eu-west-2", 
+    aws_access_key_id=aws_access_key_id, 
+    aws_secret_access_key=aws_secret_access_key
+    )
+
 #### ---------------------------------
 #### -------- COMMON CLASSES ---------
 #### ---------------------------------
@@ -62,13 +77,19 @@ class UserTypes(str, Enum):
     admin = "admin"
     site_manager = "sitemanager"
     default_user = "default"
-
-#### --------------------------------
-#### -------- INPUT CLASSES ---------
-#### --------------------------------
+    
+class LoginOut(BaseModel):
+    sites: List[str] = Field(..., example=["Birmingham", "London", "Newcastle"])
+    idToken: str = Field(..., example="q2uWM7esugFJhGptPtIItpF8OWxS6vr2CrQ1cMH81ZoXmQ........")
+    refreshToken: str = Field(..., example="AGEhc0AijkK9xYrO3Iams2II8EQJr-uwncfej4amfxT-........")
+    tokenExpiresIn: str = Field(..., example="3600")
 
 class GetData(BaseModel):
     token: str = Field(..., example="q2uWM7esugFJhGptPtIItpF8OWxS6vr2CrQ1cMH81ZoXmQ........")
+    
+#### --------------------------------
+#### -------- INPUT CLASSES ---------
+#### --------------------------------
     
 class GetUserData(GetData):
     uid: Optional[str] = Field(None, example="5dci23SoQXQIRQgXVwacYGNrrWS2")
@@ -103,6 +124,9 @@ class Login(BaseModel):
     
 class ChooseSite(GetData):
     site: str = Field(..., example="Nottingham")
+    lat: float = Field(..., example=51.01233)
+    lon: float = Field(..., example=-1.25123)
+    ip: str = Field(..., example="123.123.123.123")
     
 class EditSite(GetData):
     site: str = Field(..., example="Nottingham")
@@ -125,16 +149,9 @@ class GetUserOut(BaseModel):
             "userType": UserTypes.site_manager,
             "sites": ["Birmingham", "London", "Newcastle"]}})
 
-class WebLoginOut(BaseModel):
+class WebLoginOut(LoginOut):
     uid: str = Field(None, example="5dci23SoQXQIRQgXVwacYGNrrWS2")
-    idToken: str = Field(..., example="q2uWM7esugFJhGptPtIItpF8OWxS6vr2CrQ1cMH81ZoXmQ........")
-    refreshToken: str = Field(..., example="AGEhc0AijkK9xYrO3Iams2II8EQJr-uwncfej4amfxT-........")
-    tokenExpiresIn: str = Field(..., example="3600")
     userType: UserTypes = Field(..., example=UserTypes.site_manager)
-    sites: List[str] = Field(..., example=["Birmingham", "London", "Newcastle"])
-
-class NeruLoginOut(BaseModel):
-    pass
 
 class SuccessfulOut(BaseModel):
     response: str = Field("successful request", example="successful request")
@@ -147,6 +164,8 @@ class AddUserOut(BaseModel):
 ### ----------- HELPER FUNCTIONS -----------
 ### ----------------------------------------
 
+# takes two lists
+# returns list of common values
 def intersect(lista, listb):
     return list(set(lista) & set(listb))
 
@@ -216,7 +235,6 @@ def createUser(user: UserCreate):
     
     return newUser.uid
 
-
 def addSitesToUser(uid: str, sites: List[str]):
     ref = table.document(uid)
     ref.update({u'sites': firestore.ArrayUnion(sites)})
@@ -261,8 +279,7 @@ def editUser(user: UserEdit):
     addSitesToUser(user.uid, user.addSites)
     removeSitesFromUser(user.uid, user.delSites)
     
-    return True
-        
+    return True    
 
 def loginUser(email: str, password: str):
     apiKey = "AIzaSyBkpEDGlj06SVpYzIbNr2KCIGfYhXBGysE"
@@ -394,10 +411,11 @@ def add_user(addUser: UserCreate):
     
     if requestingUserData["userType"] == UserTypes.admin:
         
-        # if user already exists
+        # try if user already exists
         try:
             uid = addSitesOnly()
          
+        # if user doesnt exist
         except:   
             uid = createUser(addUser)
             if uid == None:
