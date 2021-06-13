@@ -542,11 +542,27 @@ def delete_site(site: DeleteSite):
     if requestingUserData["userType"] == UserTypes.admin:
         ref = db.reference("nerus").child(site.name)
         
+        # remove sites from firestore users
         if ref.get() != None:
-            pass # delete all values in firestore and delete in firebase rtdb
+            users = getUsersBySites([site.name])
+            
+            batch = fs.batch()
+            
+            for uid, data in users.items():
+                userRef = table.document(uid)
+                
+                batch.update(userRef, {u'sites': firestore.ArrayRemove([site.name])})
+                
+            batch.commit()
             
         else:
             raise HTTPException(400, {"error": "site does not exist"})
+        
+        # delete thing on aws
+        try:
+            client.delete_thing(thingName=site.name)
+        except:
+            pass
         
         return successfulJSON
     
