@@ -159,9 +159,9 @@ class AddUserOut(BaseModel):
     uid: str = Field(..., example="5dci23SoQXQIRQgXVwacYGNrrWS2")
     
 class ChooseSiteOut(BaseModel):
-    certificatePem: str = Field(..., eample="-----BEGIN CERTIFICATE-----\nMIIDWjCCAkKgAwIBAgIVAMQz1aj7fE0nUqxhC")
-    publicKey: str = Field(..., eample="-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBC")
-    privateKey: str = Field(..., eample="-----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQEAupYWWqr+O0XLIEJlA/n8g")
+    certificatePem: str = Field(..., example="-----BEGIN CERTIFICATE-----\nMIIDWjCCAkKgAwIBAgIVAMQz1aj7fE0nUqxhC")
+    publicKey: str = Field(..., example="-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBC")
+    privateKey: str = Field(..., example="-----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQEAupYWWqr+O0XLIEJlA/n8g")
     
     
 ### ----------------------------------------
