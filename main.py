@@ -650,28 +650,32 @@ def web_login(login: Login):
 def neru_login(login: Login):
     userData = loginUser(login.email, login.password)
     
-    if userData == None:
-        raise invalidCredentialsException
-    
-    firestoreUserData = getUserDataByUID(userData["uid"])[userData]
+    try:
+        firestoreUserData = getUserDataByUID(userData["uid"])[userData["uid"]]
 
-    if firestoreUserData["userType"] == UserTypes.admin:
-        ref = db.reference("nerus")
-        snapshot = ref.get(shallow=True)
+        if firestoreUserData["userType"] == UserTypes.admin:
+            ref = db.reference("nerus")
+            snapshot = ref.get(shallow=True)
+            
+            sortedSites = sorted([
+                x[0]
+                for x in snapshot.items()
+            ])
+            
+        else:
+            sortedSites = sorted(firestoreUserData["sites"])
+            
+        responseContent = {
+            "idToken": userData["idToken"],
+            "refreshToken": userData["refreshToken"],
+            "tokenExpiresIn": userData["tokenExpiresIn"],
+            "sites": sortedSites
+        }
         
-        sortedSites = sorted(snapshot.items())
-        
-    else:
-        sortedSites = sorted(firestoreUserData["sites"])
-        
-    responseContent = {
-        "idToken": userData["idToken"],
-        "refreshToken": userData["refreshToken"],
-        "tokenExpiresIn": userData["tokenExpiresIn"],
-        "sites": sortedSites
-    }
+        return JSONResponse(content=responseContent)
     
-    return JSONResponse(content=responseContent)
+    except:
+        raise invalidCredentialsException
 
 # ----- Choose NERU location after logging in -----
 @app.post("/choosesite", tags=["Login"], response_model=ChooseSiteOut)
