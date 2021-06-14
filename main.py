@@ -634,7 +634,7 @@ def edit_site(site: EditSite):
 def web_login(login: Login):
     userData = loginUser(login.email, login.password)
     try:
-        firestoreUserData = getUserDataByUID(userData["uid"])
+        firestoreUserData = getUserDataByUID(userData["uid"])[userData["uid"]]
         dataToSend = {**userData, **firestoreUserData}
         return JSONResponse(content=dataToSend)
     except:
