@@ -158,6 +158,11 @@ class SuccessfulOut(BaseModel):
 class AddUserOut(BaseModel):
     uid: str = Field(..., example="5dci23SoQXQIRQgXVwacYGNrrWS2")
     
+class ChooseSiteOut(BaseModel):
+    certificatePem: str = Field(..., eample="-----BEGIN CERTIFICATE-----\nMIIDWjCCAkKgAwIBAgIVAMQz1aj7fE0nUqxhC")
+    publicKey: str = Field(..., eample="-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBC")
+    privateKey: str = Field(..., eample="-----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQEAupYWWqr+O0XLIEJlA/n8g")
+    
     
 ### ----------------------------------------
 ### ----------- HELPER FUNCTIONS -----------
@@ -669,7 +674,7 @@ def neru_login(login: Login):
     return JSONResponse(content=responseContent)
 
 # ----- Choose NERU location after logging in -----
-@app.post("/choosesite", tags=["Login"], response_model=SuccessfulOut)
+@app.post("/choosesite", tags=["Login"], response_model=ChooseSiteOut)
 def choose_site(site: ChooseSite):
     
     siteData = getSiteData(site.site)
