@@ -689,7 +689,7 @@ def choose_site(site: ChooseSite):
     def testCoAP():
         try:
             client = HelperClient(server=(site.ip, siteData["Port"]))
-            response = client.get('test', timeout=1)
+            response = client.get('test', timeout=2)
             client.stop()
             
             if response:
@@ -719,8 +719,8 @@ def choose_site(site: ChooseSite):
     if requestingUserUID == None:
         raise invalidTokenException
     
-    requestingUserData = getUserDataByUID(requestingUserUID)
-    
+    requestingUserData = getUserDataByUID(requestingUserUID)[requestingUserUID]
+        
     if testCoAP():
         if requestingUserData["userType"] == UserTypes.admin:
             return approveConnection()
