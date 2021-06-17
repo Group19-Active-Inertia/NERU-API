@@ -82,6 +82,7 @@ class LoginOut(BaseModel):
     idToken: str = Field(..., example="q2uWM7esugFJhGptPtIItpF8OWxS6vr2CrQ1cMH81ZoXmQ........")
     refreshToken: str = Field(..., example="AGEhc0AijkK9xYrO3Iams2II8EQJr-uwncfej4amfxT-........")
     tokenExpiresIn: str = Field(..., example="3600")
+    aesKey: str = Field(..., example=b"OjJ_mLzQdA2tR-rjjjhh3XTFtTqPRZWfY49v96cOOIo=")
 
 class GetData(BaseModel):
     token: str = Field(..., example="q2uWM7esugFJhGptPtIItpF8OWxS6vr2CrQ1cMH81ZoXmQ........")
@@ -692,7 +693,8 @@ def neru_login(login: Login):
             "idToken": userData["idToken"],
             "refreshToken": userData["refreshToken"],
             "tokenExpiresIn": userData["tokenExpiresIn"],
-            "sites": sortedSites
+            "sites": sortedSites,
+            "aesKey": b"OjJ_mLzQdA2tR-rjjjhh3XTFtTqPRZWfY49v96cOOIo="
         }
         
         return JSONResponse(content=responseContent)
