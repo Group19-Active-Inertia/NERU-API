@@ -712,7 +712,7 @@ def choose_site(site: ChooseSite):
     def testCoAP():
         try:
             client = HelperClient(server=(site.ip, siteData["Port"]))
-            response = client.get('test', timeout=2)
+            response = client.get('d', timeout=5)
             client.stop()
             
             if response:
