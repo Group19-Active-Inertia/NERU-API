@@ -1,2 +1,3 @@
 # NERU-API
-API to manage data and user permissions better
+
+API used for user authentication and managing user permissions. 
